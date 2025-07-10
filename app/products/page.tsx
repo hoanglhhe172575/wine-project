@@ -11,125 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Star, ArrowRight, ChevronDown, ChevronRight, ShoppingCart } from "lucide-react"
 import Footer from "../components/footer"
 import Navbar from "../components/navbar"
-
-const wines = [
-  {
-    id: 3,
-    name: "Set Rượu Dâu Gia Đình",
-    type: "Rượu Dâu",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    volume: "1L",
-    price: "55,000",
-    originalPrice: null,
-    discount: null,
-    rating: 4.4,
-    image: "/images/strawberry-wine-family.jpg",
-    description: "Set rượu dâu tươi mát với hương vị ngọt ngào tự nhiên",
-  },
-  {
-    id: 4,
-    name: "Set Rượu Dâu Premium",
-    type: "Rượu Dâu",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    volume: "500ml",
-    price: "142,500",
-    originalPrice: "150,000",
-    discount: 5,
-    rating: 4.8,
-    image: "/images/strawberry-wine-premium.jpg",
-    description: "Set rượu dâu cao cấp được đóng chai thủy tinh đẹp mắt",
-  },
-  {
-    id: 5,
-    name: "Set Rượu Nếp Cẩm Thường",
-    type: "Rượu Nếp Cẩm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    volume: "500ml",
-    price: "50,000",
-    originalPrice: null,
-    discount: null,
-    rating: 4.2,
-    image: "/images/purple-rice-wine-regular.jpg",
-    description: "Set rượu nếp cẩm với màu tím đặc trưng, hương vị thơm ngon",
-  },
-  {
-    id: 6,
-    name: "Set Rượu Nếp Cẩm Đặc Biệt",
-    type: "Rượu Nếp Cẩm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    volume: "1L",
-    price: "133,000",
-    originalPrice: "140,000",
-    discount: 5,
-    rating: 4.6,
-    image: "/images/purple-rice-wine-special.jpg",
-    description: "Set rượu nếp cẩm với màu sắc đẹp mắt",
-  },
-  {
-    id: 7,
-    name: "Set Rượu Cốm Gia Đình",
-    type: "Rượu Cốm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    volume: "500ml",
-    price: "48,000",
-    originalPrice: null,
-    discount: null,
-    rating: 4.1,
-    image: "/images/rice-wine-family.jpg",
-    description: "Set rượu cốm xanh với hương vị đặc trưng của cốm non tươi",
-  },
-  {
-    id: 8,
-    name: "Set Rượu Cốm Hảo Hạng",
-    type: "Rượu Cốm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    volume: "500ml",
-    price: "128,250",
-    originalPrice: "135,000",
-    discount: 5,
-    rating: 4.5,
-    image: "/images/rice-wine-premium.jpg",
-    description: "Set rượu cốm cao cấp được chế biến từ cốm xanh tươi",
-  },
-  {
-    id: 9,
-    name: "Set Rượu Mơ Truyền Thống",
-    type: "Rượu Mơ",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    volume: "1L",
-    price: "75,000",
-    originalPrice: null,
-    discount: null,
-    rating: 4.2,
-    image: "/images/plum-wine-traditional.jpg",
-    description: "Set rượu mơ truyền thống với hương vị thơm ngon đặc trưng",
-  },
-  {
-    id: 10,
-    name: "Set Rượu Mơ Đặc Biệt",
-    type: "Rượu Mơ",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    volume: "500ml",
-    price: "165,000",
-    originalPrice: null,
-    discount: null,
-    rating: 4.9,
-    image: "/images/plum-wine-special.jpg",
-    description: "Set rượu mơ cao cấp với hương vị thơm ngon đặc trưng",
-  },
-]
+import { useProducts } from "../contexts/products-context"
 
 const wineTypes = ["Rượu Cốm", "Rượu Dâu", "Rượu Nếp Cẩm", "Rượu Mơ"]
 
 export default function ProductsPage() {
+  const { products } = useProducts()
   const searchParams = useSearchParams()
   const searchQuery = searchParams.get("search") || ""
 
@@ -146,7 +33,7 @@ export default function ProductsPage() {
     }
   }, [searchQuery])
 
-  const filteredWines = wines.filter((wine) => {
+  const filteredWines = products.filter((wine) => {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -315,6 +202,7 @@ export default function ProductsPage() {
                     <SelectContent>
                       <SelectItem value="all">Tất cả</SelectItem>
                       <SelectItem value="500ml">500ml</SelectItem>
+                      <SelectItem value="750ml">750ml</SelectItem>
                       <SelectItem value="1L">1L</SelectItem>
                     </SelectContent>
                   </Select>

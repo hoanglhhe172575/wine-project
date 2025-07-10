@@ -219,13 +219,7 @@ export default function AuthPage() {
                   "ĐĂNG NHẬP"
                 )}
               </Button>
-
-              {/* <div className="text-center text-sm text-gray-500 leading-relaxed">
-                Cốm Mộc Ngô Thức cam kết bảo mật và sẽ không bao giờ đăng
-                <br />
-                hay chia sẻ thông tin mà chưa có được sự đồng ý của bạn.
-              </div> */}
-
+              
               <div className="text-center text-gray-500 text-sm">hoặc đăng nhập qua</div>
 
               <div className="grid grid-cols-2 gap-4">

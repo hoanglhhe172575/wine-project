@@ -9,176 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Star, ArrowLeft, MapPin, Grape, Award, ShoppingCart } from "lucide-react"
 import { useCart } from "../../contexts/cart-context"
+import { useProducts } from "../../contexts/products-context"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 
-const wineDetails = {
-  3: {
-    name: "Rượu Dâu Gia Đình",
-    type: "Rượu Dâu",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa 500ml",
-    price: "55,000",
-    rating: 4.4,
-    image: "/images/strawberry-wine-family.jpg",
-    description: "Rượu dâu tươi mát với hương vị ngọt ngào tự nhiên từ dâu tây tươi, phù hợp cho mọi gia đình.",
-    details: {
-      alcohol: "25%",
-      ingredient: "Dâu tây tươi, đường cane, men rượu",
-      aging: "Ủ 2 tháng",
-      serving: "Uống lạnh hoặc pha với đá",
-      pairing: "Bánh ngọt, trái cây, kem",
-      volume: "500ml",
-    },
-    story:
-      "Rượu dâu được làm từ dâu tây tươi ngon nhất, qua quá trình lên men tự nhiên tạo nên hương vị ngọt ngào đặc trưng. Sản phẩm có màu đỏ hồng đẹp mắt và hương thơm quyến rũ của dâu tây. Thích hợp cho những buổi tiệc gia đình hoặc thưởng thức cùng bạn bè.",
-  },
-  4: {
-    name: "Rượu Dâu Premium",
-    type: "Rượu Dâu",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh 500ml",
-    price: "150,000",
-    rating: 4.8,
-    image: "/images/strawberry-wine-premium.jpg",
-    description:
-      "Rượu dâu cao cấp được đóng chai thủy tinh sang trọng, hoàn hảo cho những dịp đặc biệt và làm quà tặng.",
-    details: {
-      alcohol: "28%",
-      ingredient: "Dâu tây organic, đường thốt nốt, men rượu cao cấp",
-      aging: "Ủ 4 tháng",
-      serving: "Uống lạnh trong ly rượu vang",
-      pairing: "Chocolate, bánh kem, pho mát mềm",
-      volume: "500ml",
-    },
-    story:
-      "Phiên bản cao cấp của rượu dâu sử dụng dâu tây organic chất lượng cao và đường thốt nốt tự nhiên. Chai thủy tinh được thiết kế đặc biệt với nắp gỗ và lá trang trí, thích hợp làm quà tặng cho những người thân yêu. Hương vị tinh tế và cân bằng hoàn hảo với màu hồng đặc trưng quyến rũ.",
-  },
-  5: {
-    name: "Rượu Nếp Cẩm Thường",
-    type: "Rượu Nếp Cẩm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa 500ml",
-    price: "50,000",
-    rating: 4.2,
-    image: "/images/purple-rice-wine-regular.jpg",
-    description: "Rượu nếp cẩm với màu tím đặc trưng và hương vị thơm ngon, được chế biến từ nếp cẩm tự nhiên.",
-    details: {
-      alcohol: "30%",
-      ingredient: "Nếp cẩm, men rượu truyền thống",
-      aging: "Ủ 3 tháng",
-      serving: "Uống ở nhiệt độ phòng",
-      pairing: "Thịt kho, cá nướng, chả lụa",
-      volume: "500ml",
-    },
-    story:
-      "Rượu nếp cẩm được làm từ nếp cẩm tự nhiên có màu tím đẹp mắt. Quy trình sản xuất theo phương pháp truyền thống giúp giữ nguyên màu sắc và hương vị đặc trưng của nếp cẩm. Sản phẩm có giá cả phải chăng, phù hợp cho việc sử dụng thường xuyên.",
-  },
-  6: {
-    name: "Rượu Nếp Cẩm Đặc Biệt",
-    type: "Rượu Nếp Cẩm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh 750ml",
-    price: "140,000",
-    rating: 4.6,
-    image: "/images/purple-rice-wine-special.jpg",
-    description: "Rượu nếp cẩm cao cấp với màu sắc đẹp mắt, được đóng chai thủy tinh sang trọng.",
-    details: {
-      alcohol: "33%",
-      ingredient: "Nếp cẩm hạt to, men rượu đặc biệt",
-      aging: "Ủ 5 tháng",
-      serving: "Uống ở nhiệt độ phòng trong ly nhỏ",
-      pairing: "Thịt nướng, hải sản, bánh chưng",
-      volume: "750ml",
-    },
-    story:
-      "Phiên bản cao cấp của rượu nếp cẩm sử dụng nếp cẩm hạt to chất lượng cao nhất. Thời gian ủ lâu hơn giúp hương vị trở nên đậm đà và phức tạp hơn. Chai thủy tinh được thiết kế đẹp mắt với dây trang trí màu tím đặc trưng và thiệp quà sang trọng, tạo nên sản phẩm quà tặng ý nghĩa.",
-  },
-  7: {
-    name: "Rượu Cốm Gia Đình",
-    type: "Rượu Cốm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa 500ml",
-    price: "48,000",
-    rating: 4.1,
-    image: "/images/rice-wine-family.jpg",
-    description: "Rượu cốm xanh với hương vị đặc trưng của cốm non tươi, mang đậm hương vị quê hương.",
-    details: {
-      alcohol: "27%",
-      ingredient: "Cốm xanh tươi, men rượu tự nhiên",
-      aging: "Ủ 2 tháng",
-      serving: "Uống ở nhiệt độ phòng",
-      pairing: "Bánh đậu xanh, chè, trái cây",
-      volume: "500ml",
-    },
-    story:
-      "Rượu cốm được chế biến từ cốm xanh tươi non, mang hương vị đặc trưng của mùa thu Hà Nội. Sản phẩm có màu xanh nhạt đẹp mắt và hương thơm dịu nhẹ của cốm. Đây là loại rượu truyền thống với giá cả bình dân, phù hợp cho mọi gia đình.",
-  },
-  8: {
-    name: "Rượu Cốm Hảo Hạng",
-    type: "Rượu Cốm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh 750ml",
-    price: "135,000",
-    rating: 4.5,
-    image: "/images/rice-wine-premium.jpg",
-    description: "Rượu cốm cao cấp được chế biến từ cốm xanh tươi nhất, đóng chai thủy tinh sang trọng.",
-    details: {
-      alcohol: "30%",
-      ingredient: "Cốm xanh cao cấp, men rượu đặc biệt",
-      aging: "Ủ 4 tháng",
-      serving: "Uống ở nhiệt độ phòng trong ly nhỏ",
-      pairing: "Bánh trung thu, trà xanh, bánh quy",
-      volume: "750ml",
-    },
-    story:
-      "Phiên bản cao cấp của rượu cốm sử dụng cốm xanh tươi nhất trong mùa, được chế biến theo quy trình đặc biệt để giữ nguyên hương vị tinh tế. Chai thủy tinh có màu xanh nhạt đặc trưng với nắp gỗ tự nhiên, tạo nên món quà tặng ý nghĩa cho những dịp đặc biệt.",
-  },
-  9: {
-    name: "Rượu Mơ Truyền Thống",
-    type: "Rượu Mơ",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa 1L",
-    price: "75,000",
-    rating: 4.2,
-    image: "/images/plum-wine-traditional.jpg",
-    description: "Rượu mơ truyền thống với hương vị thơm ngon đặc trưng của trái mơ chín, giá cả phải chăng.",
-    details: {
-      alcohol: "26%",
-      ingredient: "Mơ chín tự nhiên, đường cane, men rượu",
-      aging: "Ủ 3 tháng",
-      serving: "Uống lạnh hoặc ở nhiệt độ phòng",
-      pairing: "Bánh tráng nướng, hạt điều, trái cây khô",
-      volume: "1L",
-    },
-    story:
-      "Rượu mơ được chế biến từ những trái mơ chín tự nhiên, có hương thơm đặc trưng và vị ngọt dịu. Sản phẩm có màu vàng nhạt đẹp mắt và hương vị tươi mát. Với giá cả phải chăng và dung tích lớn, thích hợp cho việc sử dụng gia đình.",
-  },
-  10: {
-    name: "Rượu Mơ Đặc Biệt",
-    type: "Rượu Mơ",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh 500ml",
-    price: "165,000",
-    rating: 4.9,
-    image: "/images/plum-wine-special.jpg",
-    description: "Rượu mơ cao cấp với hương vị thơm ngon đặc trưng, đóng chai thủy tinh sang trọng.",
-    details: {
-      alcohol: "30%",
-      ingredient: "Mơ organic cao cấp, đường thốt nốt, men rượu đặc biệt",
-      aging: "Ủ 6 tháng",
-      serving: "Uống lạnh trong ly rượu vang",
-      pairing: "Chocolate đen, bánh tart, pho mát cứng",
-      volume: "500ml",
-    },
-    story:
-      "Phiên bản cao cấp nhất của rượu mơ sử dụng mơ organic chất lượng cao và quy trình ủ lâu để tạo nên hương vị phức tạp và tinh tế. Chai thủy tinh có màu amber đẹp mắt với nhãn NETSAV đặc trưng và nắp gỗ tự nhiên, thích hợp làm quà tặng cho những dịp quan trọng. Đây là sản phẩm đạt rating cao nhất trong bộ sưu tập.",
-  },
-}
-
 export default function WineDetailPage({ params }: { params: { id: string } }) {
   const { dispatch } = useCart()
-  const wine = wineDetails[Number.parseInt(params.id) as keyof typeof wineDetails]
+  const { getProductById } = useProducts()
+  const wine = getProductById(Number.parseInt(params.id))
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -190,7 +28,7 @@ export default function WineDetailPage({ params }: { params: { id: string } }) {
       dispatch({
         type: "ADD_ITEM",
         payload: {
-          id: Number.parseInt(params.id),
+          id: wine.id,
           name: wine.name,
           price: wine.price,
           image: wine.image,

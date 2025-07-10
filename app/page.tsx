@@ -6,108 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Star, ArrowRight } from "lucide-react"
 import { useCart } from "./contexts/cart-context"
+import { useProducts } from "./contexts/products-context"
 import Navbar from "./components/navbar"
 import HeroBanner from "./components/hero-banner"
 import Footer from "./components/footer"
 import ServicesSection from "./components/services-section"
 
-const wines = [
-  {
-    id: 3,
-    name: "Set Rượu Dâu Gia Đình",
-    type: "Rượu Dâu",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    price: "55,000",
-    rating: 4.4,
-    image: "/images/strawberry-wine-family.jpg",
-    description: "Set rượu dâu tươi mát với hương vị ngọt ngào tự nhiên, giá cả phải chăng",
-  },
-  {
-    id: 4,
-    name: "Set Rượu Dâu Premium",
-    type: "Rượu Dâu",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    price: "150,000",
-    rating: 4.8,
-    image: "/images/strawberry-wine-premium.jpg",
-    description: "Set rượu dâu cao cấp được đóng chai thủy tinh đẹp mắt, hoàn hảo cho dịp đặc biệt",
-  },
-  {
-    id: 5,
-    name: "Set Rượu Nếp Cẩm Thường",
-    type: "Rượu Nếp Cẩm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    price: "50,000",
-    rating: 4.2,
-    image: "/images/purple-rice-wine-regular.jpg",
-    description: "Set rượu nếp cẩm với màu tím đặc trưng, hương vị thơm ngon giá bình dân",
-  },
-  {
-    id: 6,
-    name: "Set Rượu Nếp Cẩm Đặc Biệt",
-    type: "Rượu Nếp Cẩm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    price: "140,000",
-    rating: 4.6,
-    image: "/images/purple-rice-wine-special.jpg",
-    description: "Set rượu nếp cẩm cao cấp với màu sắc đẹp mắt, đóng chai thủy tinh sang trọng",
-  },
-  {
-    id: 7,
-    name: "Set Rượu Cốm Gia Đình",
-    type: "Rượu Cốm",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    price: "48,000",
-    rating: 4.1,
-    image: "/images/rice-wine-family.jpg",
-    description: "Set rượu cốm xanh với hương vị đặc trưng của cốm non tươi, mang đậm hương vị quê hương",
-  },
-  {
-    id: 8,
-    name: "Set Rượu Cốm Hảo Hạng",
-    type: "Rượu Cốm",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    price: "135,000",
-    rating: 4.5,
-    image: "/images/rice-wine-premium.jpg",
-    description: "Set rượu cốm cao cấp được chế biến từ cốm xanh tươi nhất, đóng chai thủy tinh sang trọng",
-  },
-  {
-    id: 9,
-    name: "Set Rượu Mơ Truyền Thống",
-    type: "Rượu Mơ",
-    category: "Bình Dân",
-    packaging: "Chai Nhựa",
-    price: "75,000",
-    rating: 4.2,
-    image: "/images/plum-wine-traditional.jpg",
-    description: "Set rượu mơ truyền thống với hương vị thơm ngon đặc trưng, giá cả phải chăng",
-  },
-  {
-    id: 10,
-    name: "Set Rượu Mơ Đặc Biệt",
-    type: "Rượu Mơ",
-    category: "Quà Tặng",
-    packaging: "Chai Thủy Tinh",
-    price: "165,000",
-    rating: 4.9,
-    image: "/images/plum-wine-special.jpg",
-    description: "Set rượu mơ cao cấp với hương vị thơm ngon đặc trưng, đóng chai thủy tinh sang trọng",
-  },
-]
-
-const featuredWines = wines.filter((wine) => [4, 6, 8, 10].includes(wine.id))
-
 export default function HomePage() {
   const { dispatch } = useCart()
+  const { products } = useProducts()
 
-  const addToCart = (wine: (typeof wines)[0]) => {
+  // Get featured wines (premium products)
+  const featuredWines = products.filter((wine) => wine.category === "Quà Tặng").slice(0, 4)
+
+  const addToCart = (wine: (typeof products)[0]) => {
     dispatch({
       type: "ADD_ITEM",
       payload: {
