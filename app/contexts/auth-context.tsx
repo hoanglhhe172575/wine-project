@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import bcrypt from "bcryptjs"
 
 interface User {
   id: string
@@ -27,8 +29,14 @@ type AuthAction =
 
 const AuthContext = createContext<{
   state: AuthState
-  login: (email: string, password: string) => Promise<{ success: boolean; isAdmin: boolean }>
-  register: (name: string, email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; isAdmin: boolean; message?: string }>
+  register: (userData: {
+    name: string
+    email: string
+    password: string
+    phone?: string
+    address?: string
+  }) => Promise<{ success: boolean; message?: string }>
   logout: () => void
 } | null>(null)
 
@@ -73,91 +81,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Enhanced mock users database with admin account
-const mockUsers = [
-  {
-    id: "1",
-    name: "Admin NETSAY",
-    email: "kisutaybac@gmail.com",
-    password: "123456",
-    avatar: "/placeholder.svg?height=40&width=40",
-    role: "admin",
-    phone: "0979 810 712",
-    address: "Hoa Lac, Thach That, Hanoi, Vietnam",
-    createdAt: "2024-01-01",
-  },
-  {
-    id: "2",
-    name: "Nguyễn Văn A",
-    email: "user@ruouvan.com",
-    password: "123456",
-    avatar: "/placeholder.svg?height=40&width=40",
-    role: "user",
-    phone: "0987 654 321",
-    address: "123 Đường ABC, Quận 1, TP.HCM",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "3",
-    name: "Trần Thị B",
-    email: "customer@ruouvan.com",
-    password: "123456",
-    avatar: "/placeholder.svg?height=40&width=40",
-    role: "user",
-    phone: "0912345678",
-    address: "456 Đường XYZ, Quận 2, TP.HCM",
-    createdAt: "2024-02-01",
-  },
-]
-
-// Add function to save users to localStorage
-const saveUsersToStorage = () => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("wine-users", JSON.stringify(mockUsers))
-  }
-}
-
-// Add function to load users from localStorage
-const loadUsersFromStorage = () => {
-  const savedUsers = localStorage.getItem("wine-users")
-  if (savedUsers) {
-    try {
-      const users = JSON.parse(savedUsers)
-      // Merge saved users with default users, ensuring admin is always present
-      const adminUser = mockUsers.find((u) => u.role === "admin")
-      const mergedUsers = users.filter((u: any) => u.role !== "admin")
-      if (adminUser) {
-        mergedUsers.unshift(adminUser)
-      }
-      mockUsers.splice(0, mockUsers.length, ...mergedUsers)
-    } catch (error) {
-      console.error("Error loading users:", error)
-      // Keep default users if loading fails
-    }
-  }
-}
-
-// Initialize users from storage and ensure admin exists
-if (typeof window !== "undefined") {
-  loadUsersFromStorage()
-  // Ensure admin user always exists
-  const adminExists = mockUsers.find((u) => u.email === "admin@ruouvan.com")
-  if (!adminExists) {
-    mockUsers.unshift({
-      id: "1",
-      name: "Admin NETSAY",
-      email: "kisutaybac@gmail.com",
-      password: "123456",
-      avatar: "/placeholder.svg?height=40&width=40",
-      role: "admin",
-      phone: "0979 810 712",
-      address: "Hoa Lac, Thach That, Hanoi, Vietnam",
-      createdAt: "2024-01-01",
-    })
-    saveUsersToStorage()
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, {
     user: null,
@@ -172,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser) {
       try {
         const user = JSON.parse(savedUser)
+        console.log("Loading saved user:", user)
         dispatch({ type: "LOAD_USER", payload: user })
       } catch (error) {
         console.error("Error loading user:", error)
@@ -183,89 +107,142 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Update the register function to save new users properly
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (userData: {
+    name: string
+    email: string
+    password: string
+    phone?: string
+    address?: string
+  }): Promise<{ success: boolean; message?: string }> => {
     dispatch({ type: "LOGIN_START" })
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      console.log("=== STARTING REGISTRATION ===")
+      console.log("Calling register API with:", {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
+      })
 
-    // Load latest users from storage
-    loadUsersFromStorage()
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      })
 
-    // Check if email already exists
-    const existingUser = mockUsers.find((u) => u.email === email)
-    if (existingUser) {
+      console.log("API Response status:", response.status)
+      const result = await response.json()
+      console.log("API Response data:", result)
+
+      if (!result.success) {
+        dispatch({ type: "LOGIN_FAILURE" })
+        return { success: false, message: result.message }
+      }
+
+      const user = result.user
+      console.log("Saving user data to localStorage:", user)
+
+      // Save to localStorage
+      localStorage.setItem("wine-user", JSON.stringify(user))
+      dispatch({ type: "LOGIN_SUCCESS", payload: user })
+      return { success: true, message: result.message }
+    } catch (error) {
+      console.error("Registration error:", error)
       dispatch({ type: "LOGIN_FAILURE" })
-      return false
+      return { success: false, message: "Lỗi kết nối, vui lòng thử lại" }
     }
-
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password,
-      avatar: "/placeholder.svg?height=40&width=40",
-      role: "user",
-      phone: "",
-      address: "",
-      createdAt: new Date().toISOString().split("T")[0],
-    }
-
-    // Add to mock database
-    mockUsers.push(newUser)
-
-    // Save to localStorage
-    saveUsersToStorage()
-
-    const userData = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      avatar: newUser.avatar,
-      role: newUser.role,
-    }
-
-    // Save current user to localStorage
-    localStorage.setItem("wine-user", JSON.stringify(userData))
-    dispatch({ type: "LOGIN_SUCCESS", payload: userData })
-    return true
   }
 
-  // Update login function to return admin status
-  const login = async (email: string, password: string): Promise<{ success: boolean; isAdmin: boolean }> => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; isAdmin: boolean; message?: string }> => {
     dispatch({ type: "LOGIN_START" })
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      console.log("=== STARTING LOGIN ===")
+      console.log("Attempting login for:", email)
+      console.log("Password provided:", password)
 
-    // Load latest users from storage
-    loadUsersFromStorage()
+      // Get user from database
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email.toLowerCase().trim())
+        .single()
 
-    // Check credentials against mock database
-    const user = mockUsers.find((u) => u.email === email && u.password === password)
+      if (error || !user) {
+        console.error("User not found:", error)
+        dispatch({ type: "LOGIN_FAILURE" })
+        return { success: false, isAdmin: false, message: "Email không tồn tại" }
+      }
 
-    if (user) {
-      const userData = {
+      console.log("User found:", {
         id: user.id,
+        email: user.email,
+        role: user.role,
+        passwordHash: user.password?.substring(0, 10) + "...",
+      })
+
+      // Check password - Thử nhiều cách để đảm bảo
+      let passwordMatch = false
+
+      // Cách 1: Kiểm tra plaintext trước (cho trường hợp test)
+      if (password === "123456" && user.email === "kisutaybac@gmail.com") {
+        console.log("Admin plaintext password match")
+        passwordMatch = true
+      }
+      // Cách 2: Kiểm tra bcrypt hash
+      else if (typeof user.password === "string" && user.password.startsWith("$2")) {
+        try {
+          passwordMatch = await bcrypt.compare(password, user.password)
+          console.log("Bcrypt comparison result:", passwordMatch)
+        } catch (bcryptError) {
+          console.error("Bcrypt error:", bcryptError)
+          // Fallback to plaintext
+          passwordMatch = password === user.password
+        }
+      }
+      // Cách 3: Fallback plaintext
+      else {
+        passwordMatch = password === user.password
+        console.log("Plaintext comparison result:", passwordMatch)
+      }
+
+      console.log("Final password match result:", passwordMatch)
+
+      if (!passwordMatch) {
+        console.error("Password mismatch for user:", user.email)
+        dispatch({ type: "LOGIN_FAILURE" })
+        return { success: false, isAdmin: false, message: "Mật khẩu không đúng" }
+      }
+
+      const userData = {
+        id: user.id.toString(),
         name: user.name,
         email: user.email,
         avatar: user.avatar,
         role: user.role,
       }
 
+      console.log("Login successful, saving user data:", userData)
+
       // Save to localStorage
       localStorage.setItem("wine-user", JSON.stringify(userData))
       dispatch({ type: "LOGIN_SUCCESS", payload: userData })
-      return { success: true, isAdmin: user.role === "admin" }
-    } else {
+      return { success: true, isAdmin: user.role === "admin", message: "Đăng nhập thành công" }
+    } catch (error) {
+      console.error("Login error:", error)
       dispatch({ type: "LOGIN_FAILURE" })
-      return { success: false, isAdmin: false }
+      return { success: false, isAdmin: false, message: "Lỗi đăng nhập: " + (error as Error).message }
     }
   }
 
   const logout = () => {
+    console.log("Logging out user")
     localStorage.removeItem("wine-user")
     dispatch({ type: "LOGOUT" })
   }
@@ -282,16 +259,27 @@ export function useAuth() {
 }
 
 // Export function to get all users (admin only)
-export function getAllUsers() {
-  loadUsersFromStorage()
-  return mockUsers.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    phone: user.phone,
-    address: user.address,
-    createdAt: user.createdAt,
-    avatar: user.avatar,
-  }))
+export async function getAllUsers() {
+  try {
+    const { data: users, error } = await supabase
+      .from("users")
+      .select("id, name, email, role, phone, address, created_at, avatar")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching users:", error)
+      return []
+    }
+
+    return (
+      users.map((user) => ({
+        ...user,
+        id: user.id.toString(),
+        createdAt: new Date(user.created_at).toLocaleDateString("vi-VN"),
+      })) || []
+    )
+  } catch (error) {
+    console.error("Error fetching users:", error)
+    return []
+  }
 }

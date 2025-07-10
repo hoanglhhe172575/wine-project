@@ -18,7 +18,7 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 
 export default function CheckoutPage() {
-  const { state: cartState, dispatch: cartDispatch } = useCart()
+  const { state: cartState, dispatch: cartDispatch, saveOrderToDatabase } = useCart()
   const { state: authState } = useAuth()
   const router = useRouter()
 
@@ -77,33 +77,45 @@ export default function CheckoutPage() {
 
     setIsProcessing(true)
 
-    // Simulate order processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Create order object
+      const order = {
+        userId: authState.user?.id,
+        items: cartState.items,
+        customerInfo: orderData,
+        total: totalAmount,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      }
 
-    // Create order object
-    const order = {
-      id: Date.now().toString(),
-      userId: authState.user?.id,
-      items: cartState.items,
-      customerInfo: orderData,
-      total: totalAmount,
-      status: "pending",
-      createdAt: new Date().toISOString(),
+      console.log("Submitting order:", order)
+
+      // Save to database
+      const success = await saveOrderToDatabase(order)
+
+      if (success) {
+        // Also save to localStorage as backup
+        const existingOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+        existingOrders.push({
+          ...order,
+          id: Date.now().toString(),
+        })
+        localStorage.setItem("wine-orders", JSON.stringify(existingOrders))
+
+        // Clear cart
+        cartDispatch({ type: "CLEAR_CART" })
+
+        alert("Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.")
+        router.push("/orders")
+      } else {
+        alert("Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!")
+      }
+    } catch (error) {
+      console.error("Order submission error:", error)
+      alert("Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!")
+    } finally {
+      setIsProcessing(false)
     }
-
-    // Save order to localStorage (in real app, this would be sent to server)
-    const existingOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
-    existingOrders.push(order)
-    localStorage.setItem("wine-orders", JSON.stringify(existingOrders))
-
-    // Clear cart
-    cartDispatch({ type: "CLEAR_CART" })
-
-    setIsProcessing(false)
-
-    // Show success message and redirect
-    alert("Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.")
-    router.push("/")
   }
 
   if (cartState.items.length === 0) {
@@ -348,11 +360,11 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-center space-x-4 text-xs">
                     <div className="flex items-center space-x-1">
                       <Phone className="h-3 w-3" />
-                      <span>0949 196 075</span>
+                      <span>097 981 07 12</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Mail className="h-3 w-3" />
-                      <span>support@ruouvan.com</span>
+                      <span>kisutaybac@gmail.com</span>
                     </div>
                   </div>
                 </div>

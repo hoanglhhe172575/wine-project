@@ -76,7 +76,7 @@ export default function ContactPage() {
                 <Phone className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900">Số điện thoại</h3>
-              <p className="text-gray-600 text-lg font-medium">0979 810 712</p>
+              <p className="text-gray-600 text-lg font-medium">097 981 07 12</p>
             </CardContent>
           </Card>
 
@@ -164,20 +164,7 @@ export default function ContactPage() {
           </form>
         </Card>
       </div>
-
-      {/* Map Section */}
-      {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <Card className="overflow-hidden">
-          <div className="aspect-video bg-gray-200 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <MapPin className="h-12 w-12 mx-auto mb-4" />
-              <p className="text-lg">Bản đồ Google Maps</p>
-              <p className="text-sm">82, Mễ Trì Thượng, Nam Từ Liêm, Hà Nội</p>
-            </div>
-          </div>
-        </Card>
-      </div> */}
-
+     
       {/* Footer */}
       <Footer />
     </div>

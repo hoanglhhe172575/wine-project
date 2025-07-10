@@ -28,6 +28,7 @@ type CartAction =
 const CartContext = createContext<{
   state: CartState
   dispatch: React.Dispatch<CartAction>
+  saveOrderToDatabase: (orderData: any) => Promise<boolean>
 } | null>(null)
 
 function cartReducer(state: CartState, action: CartAction): CartState {
@@ -80,7 +81,6 @@ function calculateTotals(state: CartState): CartState {
   return { ...state, total, itemCount }
 }
 
-// Add user-specific cart functionality
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, {
     items: [],
@@ -106,7 +106,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("wine-cart", JSON.stringify(state))
   }, [state])
 
-  return <CartContext.Provider value={{ state, dispatch }}>{children}</CartContext.Provider>
+  // Function to save order to database using API
+  const saveOrderToDatabase = async (orderData: any): Promise<boolean> => {
+    try {
+      console.log("Saving order to database via API:", orderData)
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: orderData.userId,
+          items: orderData.items,
+          customerInfo: orderData.customerInfo,
+          total: orderData.total,
+          status: orderData.status || "pending",
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error("API Error:", result.error)
+        return false
+      }
+
+      console.log("Order created successfully:", result)
+      return true
+    } catch (error) {
+      console.error("Error saving order to database:", error)
+      return false
+    }
+  }
+
+  return <CartContext.Provider value={{ state, dispatch, saveOrderToDatabase }}>{children}</CartContext.Provider>
 }
 
 export function useCart() {

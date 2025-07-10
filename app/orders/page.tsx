@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Package, Calendar, MapPin, Phone, Mail } from "lucide-react"
+import { ArrowLeft, Package, Calendar, MapPin, Phone, Mail, RefreshCw } from "lucide-react"
 import { useAuth } from "../contexts/auth-context"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
@@ -38,16 +38,42 @@ interface Order {
 export default function OrdersPage() {
   const { state: authState } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (authState.isAuthenticated) {
-      // Load orders from localStorage
+  const fetchOrders = async () => {
+    if (!authState.isAuthenticated || !authState.user?.id) return
+
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/orders?userId=${authState.user.id}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setOrders(data.orders || [])
+      } else {
+        console.error("Failed to fetch orders")
+        // Fallback to localStorage
+        const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+        const userOrders = savedOrders.filter((order: Order) => order.userId === authState.user?.id)
+        setOrders(
+          userOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        )
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error)
+      // Fallback to localStorage
       const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
       const userOrders = savedOrders.filter((order: Order) => order.userId === authState.user?.id)
       setOrders(
         userOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
       )
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    fetchOrders()
   }, [authState.isAuthenticated, authState.user?.id])
 
   const formatPrice = (price: number) => {
@@ -81,6 +107,31 @@ export default function OrdersPage() {
     }
   }
 
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "cancelled" }),
+      })
+
+      if (response.ok) {
+        // Refresh orders
+        fetchOrders()
+        alert("Đã hủy đơn hàng thành công!")
+      } else {
+        alert("Có lỗi xảy ra khi hủy đơn hàng!")
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error)
+      alert("Có lỗi xảy ra khi hủy đơn hàng!")
+    }
+  }
+
   if (!authState.isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
@@ -105,19 +156,30 @@ export default function OrdersPage() {
 
       {/* Back Button */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <Link href="/">
-          <Button variant="outline" className="mb-6 bg-transparent">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại trang chủ
+        <div className="flex justify-between items-center">
+          <Link href="/">
+            <Button variant="outline" className="mb-6 bg-transparent">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Quay lại trang chủ
+            </Button>
+          </Link>
+          <Button onClick={fetchOrders} variant="outline" className="mb-6 bg-transparent" disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Làm mới
           </Button>
-        </Link>
+        </div>
       </div>
 
       {/* Orders Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Lịch sử đơn hàng</h1>
 
-        {orders.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin mr-3" />
+            <span>Đang tải đơn hàng...</span>
+          </div>
+        ) : orders.length === 0 ? (
           <Card className="p-8 text-center">
             <CardContent>
               <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -216,7 +278,11 @@ export default function OrdersPage() {
                   {/* Actions */}
                   <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
                     {order.status === "pending" && (
-                      <Button variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent">
+                      <Button
+                        variant="outline"
+                        className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                        onClick={() => handleCancelOrder(order.id)}
+                      >
                         Hủy đơn hàng
                       </Button>
                     )}

@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { useAuth, getAllUsers } from "../contexts/auth-context"
 import { useProducts, type Product } from "../contexts/products-context"
+
 interface User {
   id: string
   name: string
@@ -93,7 +94,6 @@ export default function AdminPage() {
     pairing: "",
     story: "",
   })
-
   const [editProduct, setEditProduct] = useState({
     name: "",
     type: "",
@@ -125,14 +125,37 @@ export default function AdminPage() {
   useEffect(() => {
     if (authState.isAdmin) {
       // Load users
-      const allUsers = getAllUsers()
-      setUsers(allUsers)
+      ;(async () => {
+        const allUsers = await getAllUsers()
+        setUsers(allUsers)
+      })()
 
-      // Load orders
-      const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
-      setOrders(
-        savedOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      )
+      // Load orders from API instead of localStorage
+      ;(async () => {
+        try {
+          const response = await fetch("/api/orders")
+          if (response.ok) {
+            const data = await response.json()
+            setOrders(data.orders || [])
+          } else {
+            console.error("Failed to fetch orders from API")
+            // Fallback to localStorage
+            const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+            setOrders(
+              savedOrders.sort(
+                (a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+              ),
+            )
+          }
+        } catch (error) {
+          console.error("Error fetching orders:", error)
+          // Fallback to localStorage
+          const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+          setOrders(
+            savedOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+          )
+        }
+      })()
     }
   }, [authState.isAdmin])
 
@@ -180,24 +203,42 @@ export default function AdminPage() {
   }
 
   const getTotalRevenue = () => {
-    return orders.reduce((sum, order) => sum + order.total, 0)
+    return orders.filter((order) => order.status === "delivered").reduce((sum, order) => sum + order.total, 0)
   }
 
   const getTotalUsers = () => {
-    return users.filter((user) => user.role !== "admin").length
+    return Array.isArray(users) ? users.filter((user) => user.role !== "admin").length : 0
   }
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-    setOrders(updatedOrders)
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
 
-    // Update localStorage
-    localStorage.setItem("wine-orders", JSON.stringify(updatedOrders))
+      if (response.ok) {
+        // Reload orders from API
+        const ordersResponse = await fetch("/api/orders")
+        if (ordersResponse.ok) {
+          const data = await ordersResponse.json()
+          setOrders(data.orders || [])
 
-    // Update userOrders if viewing specific user orders
-    if (selectedUser) {
-      const filteredOrders = updatedOrders.filter((order: Order) => order.userId === selectedUser.id)
-      setUserOrders(filteredOrders)
+          // Update userOrders if viewing specific user orders
+          if (selectedUser) {
+            const filteredOrders = (data.orders || []).filter((order: Order) => order.userId === selectedUser.id)
+            setUserOrders(filteredOrders)
+          }
+        }
+      } else {
+        alert("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng!")
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error)
+      alert("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng!")
     }
   }
 
@@ -256,7 +297,6 @@ export default function AdminPage() {
     setIsCreateProductOpen(false)
     alert("Thêm sản phẩm thành công!")
   }
-
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product)
@@ -338,7 +378,8 @@ export default function AdminPage() {
     setIsEditProductOpen(false)
     alert("Cập nhật sản phẩm thành công!")
   }
-  const   handleDeleteProduct = (productId: number) => {
+
+  const handleDeleteProduct = (productId: number) => {
     if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
       deleteProduct(productId)
       alert("Xóa sản phẩm thành công!")
@@ -364,7 +405,7 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-500">Chào mừng, {authState.user?.name}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">              
               <Button
                 onClick={handleLogout}
                 variant="outline"
@@ -751,6 +792,8 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Edit Product Dialog */}
             <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
