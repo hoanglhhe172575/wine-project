@@ -75,6 +75,7 @@ export default function AdminPage() {
   const [isCreateProductOpen, setIsCreateProductOpen] = useState(false)
   const [isEditProductOpen, setIsEditProductOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [isViewOrdersOpen, setIsViewOrdersOpen] = useState(false)
   const [newProduct, setNewProduct] = useState({
     name: "",
     type: "",
@@ -125,37 +126,37 @@ export default function AdminPage() {
   useEffect(() => {
     if (authState.isAdmin) {
       // Load users
-      ;(async () => {
+      ; (async () => {
         const allUsers = await getAllUsers()
         setUsers(allUsers)
       })()
 
-      // Load orders from API instead of localStorage
-      ;(async () => {
-        try {
-          const response = await fetch("/api/orders")
-          if (response.ok) {
-            const data = await response.json()
-            setOrders(data.orders || [])
-          } else {
-            console.error("Failed to fetch orders from API")
+        // Load orders from API instead of localStorage
+        ; (async () => {
+          try {
+            const response = await fetch("/api/orders")
+            if (response.ok) {
+              const data = await response.json()
+              setOrders(data.orders || [])
+            } else {
+              console.error("Failed to fetch orders from API")
+              // Fallback to localStorage
+              const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+              setOrders(
+                savedOrders.sort(
+                  (a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                ),
+              )
+            }
+          } catch (error) {
+            console.error("Error fetching orders:", error)
             // Fallback to localStorage
             const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
             setOrders(
-              savedOrders.sort(
-                (a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-              ),
+              savedOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
             )
           }
-        } catch (error) {
-          console.error("Error fetching orders:", error)
-          // Fallback to localStorage
-          const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
-          setOrders(
-            savedOrders.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-          )
-        }
-      })()
+        })()
     }
   }, [authState.isAdmin])
 
@@ -164,11 +165,32 @@ export default function AdminPage() {
     router.push("/")
   }
 
-  const handleViewUserOrders = (user: User) => {
+  const handleViewUserOrders = async (user: User) => {
     setSelectedUser(user)
-    const orders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
-    const filteredOrders = orders.filter((order: Order) => order.userId === user.id)
-    setUserOrders(filteredOrders)
+
+    // Try to get orders from API first
+    try {
+      const response = await fetch("/api/orders")
+      if (response.ok) {
+        const data = await response.json()
+        const allOrders = data.orders || []
+        const filteredOrders = allOrders.filter((order: Order) => order.userId === user.id)
+        setUserOrders(filteredOrders)
+      } else {
+        // Fallback to localStorage
+        const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+        const filteredOrders = savedOrders.filter((order: Order) => order.userId === user.id)
+        setUserOrders(filteredOrders)
+      }
+    } catch (error) {
+      console.error("Error fetching user orders:", error)
+      // Fallback to localStorage
+      const savedOrders = JSON.parse(localStorage.getItem("wine-orders") || "[]")
+      const filteredOrders = savedOrders.filter((order: Order) => order.userId === user.id)
+      setUserOrders(filteredOrders)
+    }
+
+    setIsViewOrdersOpen(true)
   }
 
   const formatPrice = (price: number) => {
@@ -405,7 +427,7 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-500">Chào mừng, {authState.user?.name}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">              
+            <div className="flex items-center space-x-4">
               <Button
                 onClick={handleLogout}
                 variant="outline"
@@ -1350,6 +1372,121 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <Dialog open={isViewOrdersOpen} onOpenChange={setIsViewOrdersOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Đơn hàng của {selectedUser?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {userOrders.length === 0 ? (
+              <div className="text-center py-8">
+                <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">Người dùng này chưa có đơn hàng nào</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {userOrders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-medium">Đơn hàng #{order.id}</h4>
+                        <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center space-x-2 mb-2">
+                          {getStatusBadge(order.status)}
+                          {/* Status Update Buttons for User Orders */}
+                          {order.status === "pending" && (
+                            <div className="flex space-x-1">
+                              <Button
+                                size="sm"
+                                onClick={() => updateOrderStatus(order.id, "confirmed")}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1"
+                              >
+                                Xác nhận
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1"
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          )}
+                          {order.status === "confirmed" && (
+                            <Button
+                              size="sm"
+                              onClick={() => updateOrderStatus(order.id, "shipping")}
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1"
+                            >
+                              Giao hàng
+                            </Button>
+                          )}
+                          {order.status === "shipping" && (
+                            <Button
+                              size="sm"
+                              onClick={() => updateOrderStatus(order.id, "delivered")}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1"
+                            >
+                              Đã giao
+                            </Button>
+                          )}
+                        </div>
+                        <p className="font-bold text-green-600">{formatPrice(order.total)}</p>
+                      </div>
+                    </div>
+
+                    {/* Order Details */}
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>
+                        <strong>Số lượng sản phẩm:</strong> {order.items.length}
+                      </p>
+                      <p>
+                        <strong>Địa chỉ:</strong> {order.customerInfo.address}
+                      </p>
+                      <p>
+                        <strong>Điện thoại:</strong> {order.customerInfo.phone}
+                      </p>
+                      {order.customerInfo.notes && (
+                        <p>
+                          <strong>Ghi chú:</strong> {order.customerInfo.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="mt-3 pt-3 border-t">
+                      <h5 className="font-medium text-gray-900 mb-2">Sản phẩm:</h5>
+                      <div className="space-y-2">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex items-center space-x-3 text-sm">
+                            <Image
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              width={32}
+                              height={32}
+                              className="rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-gray-500">{item.type}</p>
+                            </div>
+                            <div className="text-right">
+                              <p>x{item.quantity}</p>
+                              <p className="font-medium">{item.price}đ</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
